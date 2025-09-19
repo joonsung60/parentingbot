@@ -2,6 +2,7 @@ import streamlit as st
 import yaml
 import os
 from datetime import datetime
+from typing import Dict
 from lib.openai_client import chat_completion
 from lib.storage import (
     list_conversations, create_conversation, load_conversation,
@@ -12,7 +13,7 @@ from lib.prompt_manager import get_system_prompt
 
 PROMPT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts")
 
-def get_prompts() -> List[Dict]:
+def get_prompts() -> list[dict]:
     prompts = []
     for file in os.listdir(PROMPT_DIR):
         if file.endswith(".yml"):
@@ -26,14 +27,13 @@ def get_prompts() -> List[Dict]:
                 })
     return prompts
 
-def get_system_prompt(prompt_id: str) -> Dict:
-    prompts = get_prompts()
-    selected = next((p for p in prompts if p["id"] == prompt_id), None)
-    if selected:
-        return {"role": "system", "content": selected["content"]}
-    return {"role": "system", "content": "기본 프롬프트입니다."}  # 폴백
-
-st.set_page_config(page_title="육아 도우미 (Powered by ChatGPT)", layout="wide")
+def add_message(role: str, content: str) -> str:
+    """세션 상태에 메시지를 추가하고 저장합니다."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    message = {"role": role, "content": content, "ts": timestamp}
+    st.session_state.messages.append(message)
+    save_conversation(st.session_state.active_cid, st.session_state.messages)
+    return timestamp
 
 # ---------- 초기 세팅 ----------
 if "active_cid" not in st.session_state:
@@ -127,7 +127,7 @@ with st.sidebar:
             st.rerun()
 
 # ---------- 본문 ----------
-st.title("육아 도우미 (Powered by ChatGPT)")
+st.title("육아 도우미 (Powered by ChatGPT in streamlit-layout Branch)")
 
 # 기록 출력
 for m in st.session_state.messages:
