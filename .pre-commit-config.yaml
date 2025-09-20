@@ -1,0 +1,47 @@
+repos:
+# 1) 기본 안전장치(문법/공백/충돌)
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.6.0
+  hooks:
+    - id: check-yaml
+      files: ^parenting-helper-webapp/prompts/|^\.github/workflows/|^.*\.ya?ml$
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+    - id: check-merge-conflict
+    - id: detect-private-key
+    - id: check-added-large-files
+      args: ["--maxkb=512"]  # 512KB 이상 파일 경고
+
+# 2) 코드 품질
+- repo: https://github.com/psf/black
+  rev: 24.8.0
+  hooks:
+    - id: black
+      files: ^parenting-helper-webapp/.*\.py$
+
+- repo: https://github.com/charliermarsh/ruff-pre-commit
+  rev: v0.6.9
+  hooks:
+    - id: ruff
+      # 임포트 정리만 자동 수정해서 Black과 충돌 없게
+      args: ["--fix", "--select", "I"]
+      files: ^parenting-helper-webapp/.*\.py$
+
+# 3) 로컬: 프로젝트 특화 가드레일
+- repo: local
+  hooks:
+    # (a) prompts/*.yml 스키마+탭 금지
+    - id: validate-prompts
+      name: validate prompts (schema + no tabs)
+      language: python
+      entry: python scripts/validate_prompts.py
+      additional_dependencies: [pyyaml]
+      files: ^parenting-helper-webapp/prompts/.*\.yml$
+      pass_filenames: false
+
+    # (c) 런타임 스모크: 핵심 API/라우터가 최소 동작
+    - id: smoke
+      name: smoke test (router & storage API)
+      language: system
+      entry: bash -lc 'python scripts/smoke.py'
+      pass_filenames: false

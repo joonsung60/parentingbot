@@ -1,8 +1,9 @@
 # lib/openai_client.py 수정 제안
 import os
-from typing import List, Dict
+from typing import Dict, List
+
 from dotenv import load_dotenv
-from openai import OpenAI, APIError # APIError 추가
+from openai import APIError, OpenAI  # APIError 추가
 
 load_dotenv()
 
@@ -10,10 +11,14 @@ load_dotenv()
 try:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 except TypeError:
-    raise RuntimeError("OPENAI_API_KEY가 없습니다. .env 또는 환경변수 설정을 확인하세요.")
+    raise RuntimeError(
+        "OPENAI_API_KEY가 없습니다. .env 또는 환경변수 설정을 확인하세요."
+    )
 
 
-def chat_completion(messages: List[Dict], model: str = "gpt-4o-mini", temperature: float = 0.0) -> str:
+def chat_completion(
+    messages: List[Dict], model: str = "gpt-4o-mini", temperature: float = 0.0
+) -> str:
     try:
         resp = client.chat.completions.create(
             model=model,

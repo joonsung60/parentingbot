@@ -1,13 +1,19 @@
-import streamlit as st
 from datetime import datetime
+
+import streamlit as st
 
 # --- 내부 모듈 임포트 ---
 from lib.openai_client import chat_completion
-from lib.storage import (
-    list_conversations, create_conversation, load_conversation,
-    save_conversation, rename_conversation, delete_conversation, export_conversation
-)
 from lib.prompt_manager import get_prompts, get_system_prompt, select_prompt_id
+from lib.storage import (
+    create_conversation,
+    delete_conversation,
+    export_conversation,
+    list_conversations,
+    load_conversation,
+    rename_conversation,
+    save_conversation,
+)
 
 # =========================
 # Session bootstrap
@@ -22,12 +28,15 @@ if "active_cid" not in st.session_state:
         st.session_state.active_cid = create_conversation("새 대화")
         st.session_state.messages = []
 
-if "messages" not in st.session_state or not isinstance(st.session_state.messages, list):
+if "messages" not in st.session_state or not isinstance(
+    st.session_state.messages, list
+):
     st.session_state.messages = []
 
 # 라우팅 기본값
 st.session_state.setdefault("router_prompt_id", None)
 st.session_state.setdefault("auto_route", True)
+
 
 # =========================
 # 유틸
@@ -38,14 +47,17 @@ def _safe_rerun():
     except Exception:
         st.experimental_rerun()
 
+
 def add_message(role: str, content: str) -> str:
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     st.session_state.messages.append({"role": role, "content": content, "ts": ts})
     save_conversation(st.session_state.active_cid, st.session_state.messages)
     return ts
 
+
 def ua_only(msgs):
     return [m for m in msgs if m.get("role") in ("user", "assistant")]
+
 
 # =========================
 # 사이드바
@@ -79,11 +91,15 @@ with st.sidebar:
     st.subheader("대화")
 
     convs = list_conversations()
-    options = {c["id"]: f'{c.get("title","새 대화")} · {c.get("updated_at","")}' for c in convs}
+    options = {
+        c["id"]: f'{c.get("title","새 대화")} · {c.get("updated_at","")}' for c in convs
+    }
 
     if convs:
         try:
-            default_idx = next(i for i, c in enumerate(convs) if c["id"] == st.session_state.active_cid)
+            default_idx = next(
+                i for i, c in enumerate(convs) if c["id"] == st.session_state.active_cid
+            )
         except StopIteration:
             default_idx = 0
 
@@ -113,7 +129,9 @@ with st.sidebar:
             _safe_rerun()
     with r1c2:
         if st.button("이름 변경", use_container_width=True, key="btn_rename_toggle"):
-            st.session_state["show_rename"] = not st.session_state.get("show_rename", False)
+            st.session_state["show_rename"] = not st.session_state.get(
+                "show_rename", False
+            )
 
     # 2줄: 내보내기 | 삭제
     r2c1, r2c2 = st.columns(2, gap="small")
@@ -122,19 +140,26 @@ with st.sidebar:
             out = export_conversation(st.session_state.active_cid)
             st.success(f"아카이브로 저장됨: {out}")
     with r2c2:
-        if st.button("삭제", use_container_width=True, type="secondary", key="btn_delete"):
+        if st.button(
+            "삭제", use_container_width=True, type="secondary", key="btn_delete"
+        ):
             st.session_state["confirm_delete"] = True
 
     # ---- 이름 변경 폼(토글 시 노출) ----
     if st.session_state.get("show_rename", False) and convs:
-        current_title = next((c["title"] for c in convs if c["id"] == st.session_state.active_cid), "새 대화")
+        current_title = next(
+            (c["title"] for c in convs if c["id"] == st.session_state.active_cid),
+            "새 대화",
+        )
         with st.form("rename_form", clear_on_submit=True):
             new_title = st.text_input("새 제목", value=current_title)
             cc1, cc2 = st.columns(2, gap="small")
             save = cc1.form_submit_button("저장")
             cancel = cc2.form_submit_button("취소", type="secondary")
             if save:
-                rename_conversation(st.session_state.active_cid, new_title.strip() or "새 대화")
+                rename_conversation(
+                    st.session_state.active_cid, new_title.strip() or "새 대화"
+                )
                 st.session_state["show_rename"] = False
                 _safe_rerun()
             elif cancel:
@@ -146,7 +171,7 @@ with st.sidebar:
             st.write("이 대화를 삭제할까요? 되돌릴 수 없습니다.")
             dc1, dc2 = st.columns(2, gap="small")
             yes = dc1.form_submit_button("삭제")
-            no  = dc2.form_submit_button("취소", type="secondary")
+            no = dc2.form_submit_button("취소", type="secondary")
             if yes:
                 delete_conversation(st.session_state.active_cid)
                 left = list_conversations()
@@ -188,7 +213,11 @@ if prompt:
     # 라우팅: 자동 vs 수동
     if st.session_state.get("auto_route", True):
         hist = "\n".join(
-            [m["content"] for m in st.session_state.messages[-6:] if m.get("role") == "user"]
+            [
+                m["content"]
+                for m in st.session_state.messages[-6:]
+                if m.get("role") == "user"
+            ]
         )
         last_route = st.session_state.get("router_prompt_id")
         chosen_id = select_prompt_id(user_text, hist, last_route=last_route)
