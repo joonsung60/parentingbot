@@ -74,3 +74,43 @@ def save_conversation(cid: str, messages: List[Dict]) -> None:
     meta["updated_at"] = _now_iso()
     meta["last_preview"] = preview
     _save_index(idx)
+
+# === 추가: 회의/대화 메타 편집/삭제/내보내기 유틸 ===
+def rename_conversation(cid: str, new_title: str) -> bool:
+    idx = _load_index()
+    if cid not in idx.get("conversations", {}):
+        return False
+    idx["conversations"][cid]["title"] = new_title
+    idx["conversations"][cid]["updated_at"] = _now_iso()
+    _save_index(idx)
+    return True
+
+
+def delete_conversation(cid: str) -> bool:
+    """대화를 파일/인덱스에서 삭제"""
+    path = _conv_path(cid)
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+    except OSError:
+        pass
+
+    idx = _load_index()
+    if cid in idx.get("conversations", {}):
+        idx["conversations"].pop(cid, None)
+        idx["order"] = [x for x in idx.get("order", []) if x != cid]
+        _save_index(idx)
+    return True
+
+
+def export_conversation(cid: str, export_dir: str | None = None) -> str:
+    """data/archive/chat-YYYYMMDD-HHMMSS.json 형태로 내보내기"""
+    export_dir = export_dir or os.path.join(DATA_DIR, "archive")
+    os.makedirs(export_dir, exist_ok=True)
+
+    msgs = load_conversation(cid)
+    ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    out_path = os.path.join(export_dir, f"chat-{ts}.json")
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(msgs, f, ensure_ascii=False, indent=2)
+    return out_path
