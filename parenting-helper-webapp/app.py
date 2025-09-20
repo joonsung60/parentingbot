@@ -55,9 +55,13 @@ if prompt:
     if st.session_state.get("auto_route", True):
         # 최근 6개 정도만 히스토리 텍스트로
         hist = "\n".join([m["content"] for m in st.session_state.messages[-6:] if m["role"] == "user"])
-        chosen_id = select_prompt_id(user_text, hist)
+        last_route = st.session_state.get("router_prompt_id")
+        chosen_id = select_prompt_id(user_text, hist, last_route=last_route)
     else:
         chosen_id = st.session_state["prompt_selector"]
+
+    # 선택 결과를 세션에 저장(동점 시 이전 선택 유지용)
+    st.session_state["router_prompt_id"] = chosen_id
 
     system_msg = get_system_prompt(chosen_id)
 
