@@ -2,3 +2,6 @@
 .env
 __pycache__/
 .streamlit/
+# data & exports
+data/
+!data/.gitkeep
